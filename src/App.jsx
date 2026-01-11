@@ -18,18 +18,17 @@ import {
   SimpleGrid,
   Flex,
   Badge,
-  Tooltip,
   useToast,
+  AspectRatio,
 } from '@chakra-ui/react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
 
 function App() {
-  const [userAddress, setUserAddress] = useState('');
-  const [results, setResults] = useState([]);
-  const [hasQueried, setHasQueried] = useState(false);
+  const [wallet, setWallet] = useState('');
+  const [nfts, setNfts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [hasQueried, setHasQueried] = useState(false);
   
   const { address, isConnected } = useAccount();
   const toast = useToast();
@@ -42,43 +41,44 @@ function App() {
   async function resolveAddressOrENS(input) {
     if (input.endsWith('.eth')) {
       try {
-        const resolvedAddress = await alchemy.core.resolveName(input);
-        if (resolvedAddress) {
+        const resolved = await alchemy.core.resolveName(input);
+        if (resolved) {
           toast({
             title: 'ENS Resolved!',
-            description: `${input} → ${resolvedAddress}`,
+            description: `${input} → ${resolved.slice(0, 6)}...${resolved.slice(-4)}`,
             status: 'success',
-            duration: 3000,
+            duration: 2000,
           });
-          return resolvedAddress;
-        } else {
-          throw new Error('ENS name not found');
+          return resolved;
         }
       } catch (err) {
         toast({
-          title: 'ENS Resolution Failed',
+          title: 'ENS Failed',
           description: 'Could not resolve ENS name',
           status: 'error',
-          duration: 3000,
+          duration: 2000,
         });
         return null;
       }
     }
-    
     return input;
   }
 
-  async function getTokenBalance(addressToQuery) {
-    const targetAddress = addressToQuery || userAddress;
+  async function getNFTs(addressToQuery) {
+    const targetAddress = addressToQuery || wallet;
     
     if (!targetAddress) {
-      setError('Please enter an address or connect wallet!');
+      toast({
+        title: 'No Address',
+        description: 'Please enter an address or connect wallet',
+        status: 'warning',
+        duration: 2000,
+      });
       return;
     }
 
     setLoading(true);
-    setError('');
-    setResults([]);
+    setNfts([]);
 
     try {
       const resolvedAddress = await resolveAddressOrENS(targetAddress);
@@ -88,66 +88,37 @@ function App() {
       }
 
       if (!/^0x[a-fA-F0-9]{40}$/.test(resolvedAddress)) {
-        throw new Error('Invalid Ethereum address format');
+        throw new Error('Invalid address format');
       }
 
-      const data = await alchemy.core.getTokenBalances(resolvedAddress);
+      const nftsData = await alchemy.nft.getNftsForOwner(resolvedAddress);
 
-      const nonZeroBalances = data.tokenBalances.filter((token) => {
-        return token.tokenBalance !== '0' && token.tokenBalance !== '0x0';
-      });
+      const formattedNfts = nftsData.ownedNfts.map(nft => ({
+        title: nft.title || 'Untitled',
+        contractAddress: nft.contract.address,
+        tokenId: nft.tokenId,
+        tokenType: nft.tokenType,
+        description: nft.description || 'No description',
+        image: nft.media?.[0]?.gateway || nft.media?.[0]?.raw || null,
+        collectionName: nft.contract.name || 'Unknown Collection',
+        floorPrice: nft.contract.openSea?.floorPrice || null,
+      }));
 
-      if (nonZeroBalances.length === 0) {
-        setHasQueried(true);
-        setResults([]);
-        setLoading(false);
-        return;
-      }
-
-      const tokensWithMetadata = await Promise.all(
-        nonZeroBalances.map(async (token) => {
-          try {
-            const metadata = await alchemy.core.getTokenMetadata(
-              token.contractAddress
-            );
-
-            const balance = 
-              parseInt(token.tokenBalance) / 
-              Math.pow(10, metadata.decimals || 18);
-
-            return {
-              name: metadata.name || 'Unknown Token',
-              symbol: metadata.symbol || '???',
-              logo: metadata.logo || null,
-              balance: balance.toFixed(4),
-              contractAddress: token.contractAddress,
-              decimals: metadata.decimals,
-            };
-          } catch (err) {
-            console.error('Error fetching metadata:', err);
-            return null;
-          }
-        })
-      );
-
-      const validTokens = tokensWithMetadata.filter(t => t !== null);
-
-      setResults(validTokens);
+      setNfts(formattedNfts);
       setHasQueried(true);
-      
+
       toast({
         title: 'Success!',
-        description: `Found ${validTokens.length} tokens`,
+        description: `Found ${formattedNfts.length} NFTs`,
         status: 'success',
         duration: 2000,
       });
-      
+
     } catch (err) {
-      setError(err.message || 'Error fetching tokens. Check address and try again.');
       console.error(err);
       toast({
         title: 'Error',
-        description: 'Failed to fetch tokens',
+        description: err.message || 'Failed to fetch NFTs',
         status: 'error',
         duration: 3000,
       });
@@ -158,11 +129,11 @@ function App() {
 
   function checkMyWallet() {
     if (isConnected && address) {
-      setUserAddress(address);
-      getTokenBalance(address);
+      setWallet(address);
+      getNFTs(address);
     } else {
       toast({
-        title: 'Wallet Not Connected',
+        title: 'Not Connected',
         description: 'Please connect your wallet first',
         status: 'warning',
         duration: 2000,
@@ -173,11 +144,16 @@ function App() {
   return (
     <Container maxW="container.xl" py={10}>
       <VStack spacing={8}>
-        <Heading size="2xl" bgGradient="linear(to-r, blue.400, black)" bgClip="text">
-           ERC-20 Token Indexer
+        <Heading 
+          size="2xl"
+         bgColor={'blue.400'}
+          
+          bgClip="text"
+        >
+           NFT Gallery
         </Heading>
         <Text fontSize="lg" color="gray.600" textAlign="center">
-          Enter any wallet address (or ENS name!) to see all ERC-20 tokens
+          View any wallet's NFT collection instantly!
         </Text>
 
         <ConnectButton />
@@ -185,49 +161,44 @@ function App() {
         <VStack width="100%" spacing={4}>
           <HStack width="100%">
             <Input
-              placeholder="Enter address or ENS name (vitalik.eth)"
-              value={userAddress}
-              onChange={(e) => setUserAddress(e.target.value)}
+              placeholder="Enter wallet address or ENS (vitalik.eth)"
+              value={wallet}
+              onChange={(e) => setWallet(e.target.value)}
               size="lg"
               onKeyPress={(e) => {
-                if (e.key === 'Enter') getTokenBalance();
+                if (e.key === 'Enter') getNFTs();
               }}
             />
             <Button
-              colorScheme="blue"
+            bgColor={'blue.200'}
               size="lg"
-              onClick={() => getTokenBalance()}
+              onClick={() => getNFTs()}
               isLoading={loading}
-              loadingText="Searching..."
+              loadingText="Loading..."
             >
               Search
             </Button>
           </HStack>
-          
+
           {isConnected && (
             <Button
-              colorScheme="purple"
+              colorScheme="pink"
               size="md"
               onClick={checkMyWallet}
               width="100%"
             >
-              🔍 Check My Wallet
+              🔍 Show My NFTs
             </Button>
           )}
         </VStack>
 
-        {error && (
-          <Alert status="error" borderRadius="md">
-            <AlertIcon />
-            {error}
-          </Alert>
-        )}
-
         {loading && (
           <VStack py={10}>
-            <Spinner size="xl" color="blue.500" thickness="4px" />
-            <Text fontSize="lg">Fetching tokens...</Text>
-            <Text fontSize="sm" color="gray.500">This may take a few seconds</Text>
+            <Spinner size="xl" color="purple.500" thickness="4px" />
+            <Text fontSize="lg">Fetching NFTs...</Text>
+            <Text fontSize="sm" color="gray.500">
+              This might take a few seconds
+            </Text>
           </VStack>
         )}
 
@@ -235,93 +206,109 @@ function App() {
           <Box width="100%">
             <Flex justify="space-between" align="center" mb={6}>
               <Heading size="lg">
-                {results.length > 0 ? `Found ${results.length} Tokens` : 'No Tokens Found'}
+                {nfts.length > 0 ? `Found ${nfts.length} NFTs` : 'No NFTs Found'}
               </Heading>
-              {results.length > 0 && (
-                <Badge colorScheme="green" fontSize="md" p={2}>
-                  Total: {results.length}
+              {nfts.length > 0 && (
+                <Badge colorScheme="purple" fontSize="md" p={2}>
+                  Total: {nfts.length}
                 </Badge>
               )}
             </Flex>
 
-            {results.length === 0 ? (
+            {nfts.length === 0 ? (
               <Alert status="info">
                 <AlertIcon />
-                No tokens found for this address. They might not hold any ERC-20 tokens!
+                This wallet doesn't own any NFTs yet!
               </Alert>
             ) : (
-              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-                {results.map((token, index) => (
-                  <Card 
+              <SimpleGrid columns={{ base: 1, md: 2, lg: 3, xl: 4 }} spacing={6}>
+                {nfts.map((nft, index) => (
+                  <Card
                     key={index}
-                    _hover={{ 
-                      transform: 'translateY(-4px)', 
-                      shadow: 'xl',
-                      transition: 'all 0.2s'
+                    overflow="hidden"
+                    _hover={{
+                      transform: 'translateY(-8px)',
+                      shadow: '2xl',
+                      transition: 'all 0.3s',
                     }}
                     cursor="pointer"
                     onClick={() => {
                       window.open(
-                        `https://etherscan.io/token/${token.contractAddress}`,
+                        `https://opensea.io/assets/ethereum/${nft.contractAddress}/${nft.tokenId}`,
                         '_blank'
                       );
                     }}
                   >
-                    <CardBody>
-                      <HStack spacing={4}>
-                        {token.logo ? (
+                    <AspectRatio ratio={1}>
+                      <Box bg="gray.100">
+                        {nft.image ? (
                           <Image
-                            src={token.logo}
-                            alt={token.name}
-                            boxSize="50px"
-                            borderRadius="full"
-                            fallbackSrc="https://via.placeholder.com/50"
+                            src={nft.image}
+                            alt={nft.title}
+                            objectFit="cover"
+                            width="100%"
+                            height="100%"
+                            fallback={
+                              <Flex
+                                width="100%"
+                                height="100%"
+                                bg="gray.200"
+                                align="center"
+                                justify="center"
+                              >
+                                <Text color="gray.500">No Image</Text>
+                              </Flex>
+                            }
                           />
                         ) : (
                           <Flex
-                            boxSize="50px"
-                            bgGradient="linear(to-r, blue.400, purple.500)"
-                            borderRadius="full"
+                            width="100%"
+                            height="100%"
+                            bgGradient="linear(to-br, purple.400, pink.400)"
                             align="center"
                             justify="center"
-                            color="white"
-                            fontWeight="bold"
                           >
-                            {token.symbol?.charAt(0) || '?'}
+                            <Text fontSize="4xl">🖼️</Text>
                           </Flex>
                         )}
-                        
-                        <VStack align="start" spacing={1} flex={1}>
-                          <Tooltip label={token.name}>
-                            <Text 
-                              fontWeight="bold" 
-                              fontSize="lg"
-                              isTruncated
-                              maxW="200px"
-                            >
-                              {token.symbol}
-                            </Text>
-                          </Tooltip>
-                          <Text 
-                            fontSize="sm" 
-                            color="gray.600"
-                            isTruncated
-                            maxW="200px"
-                          >
-                            {token.name}
+                      </Box>
+                    </AspectRatio>
+
+                    <CardBody>
+                      <VStack align="start" spacing={2}>
+                        <Text
+                          fontWeight="bold"
+                          fontSize="md"
+                          noOfLines={1}
+                        >
+                          {nft.title}
+                        </Text>
+                        <Text fontSize="xs" color="gray.400" isTruncated>
+  Addr: {nft.contractAddress}
+</Text>
+                        <Text
+                          fontSize="sm"
+                          color="gray.600"
+                          noOfLines={1}
+                        >
+                          {nft.collectionName}
+                        </Text>
+
+                        <HStack>
+                          <Badge colorScheme="purple">
+                            {nft.tokenType}
+                          </Badge>
+                          <Badge colorScheme="pink">
+                            #{nft.tokenId}
+                          </Badge>
+                        </HStack>
+
+                        {nft.floorPrice && (
+                          <Text fontSize="xs" color="green.500">
+                            Floor: {nft.floorPrice} ETH
                           </Text>
-                          <Text 
-                            fontSize="xl" 
-                            color="blue.600"
-                            fontWeight="semibold"
-                          >
-                            {token.balance}
-                          </Text>
-                          <Text fontSize="xs" color="gray.400">
-                            Decimals: {token.decimals}
-                          </Text>
-                        </VStack>
-                      </HStack>
+                        )}
+                      </VStack>
                     </CardBody>
                   </Card>
                 ))}
@@ -331,9 +318,9 @@ function App() {
         )}
 
         <Text fontSize="sm" color="gray.500" textAlign="center" pt={10}>
-          💡 Tip: You can enter ENS names like "vitalik.eth" or regular addresses!
+          💡 Click any NFT to view on OpenSea
           <br />
-          Click any token to view on Etherscan
+          Supports ENS names like "vitalik.eth"
         </Text>
       </VStack>
     </Container>
