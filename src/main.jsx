@@ -9,7 +9,7 @@ import { mainnet } from 'wagmi/chains';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 
 const config = getDefaultConfig({
-  appName: 'NFT Gallery',
+  appName: 'AetherView',
   projectId: 'aa2f95397d1992a73bbece5b8dac4a97',
   chains: [mainnet],
 });
