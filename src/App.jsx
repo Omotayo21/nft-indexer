@@ -279,8 +279,8 @@ function App() {
 
                 <Tabs variant="soft-rounded" colorScheme="cyan">
                   <TabList mb={8} bg="whiteAlpha.100" p={1} borderRadius="xl" width="fit-content">
-                    <Tab borderRadius="lg" _selected={{ bg: 'cyan.400', color: 'gray.900' }}>🪙 Tokens</Tab>
-                    <Tab borderRadius="lg" _selected={{ bg: 'purple.400', color: 'white' }}>🖼️ NFTs</Tab>
+                    <Tab borderRadius="lg" _selected={{ bg: 'cyan.400', color: 'gray.900' }}> Tokens</Tab>
+                    <Tab borderRadius="lg" _selected={{ bg: 'purple.400', color: 'white' }}>NFTs</Tab>
                   </TabList>
 
                   <TabPanels>
@@ -320,8 +320,8 @@ function App() {
                                   </Box>
                                 )}
                                 <VStack align="start" spacing={0}>
-                                  <Text fontWeight="bold" fontSize="lg">{token.symbol}</Text>
-                                  <Text fontSize="sm" color="gray.500" isTruncated maxW="150px">{token.name}</Text>
+                                  <Text fontWeight="bold" fontSize="lg" color=" blue.500">{token.symbol}</Text>
+                                  <Text fontSize="sm" color="blue.500" isTruncated maxW="150px">{token.name}</Text>
                                   <Text fontSize="xl" color="cyan.400" fontWeight="bold">{token.balance}</Text>
                                 </VStack>
                               </HStack>
