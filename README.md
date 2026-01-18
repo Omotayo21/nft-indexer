@@ -1,4 +1,4 @@
-# 🌌 AetherView: Unified Web3 Discovery Dashboard
+#  AetherView: Unified Web3 Discovery Dashboard
 
 **AetherView** is a premium, full-stack Web3 portfolio dashboard designed to provide a holistic view of any Ethereum wallet. Built for the Alchemy University Certification, it unifies ERC-20 token tracking and NFT gallery exploration into a single, high-performance interface.
 
@@ -9,18 +9,18 @@
 
 ---
 
-## 🚀 The Vision
+##  The Vision
 **Problem**: Web3 users often struggle with "fragmented data," needing to visit multiple explorers and marketplaces just to see what they own.
 **Solution**: R-etherView provides a "Single Source of Truth." By leveraging the **Alchemy SDK**, we fetch fungible tokens, non-fungible collectibles, and resolve complex ENS names in one unified request.
 
-## ✨ Key Features
-- **🎯 Unified Sync**: Fetches both ERC-20 balances and NFT metadata in parallel using `Promise.allSettled`.
-- **🆔 ENS Resolution**: Full support for `.eth` names (e.g., `vitalik.eth`) with real-time resolution for a seamless UX.
-- **📄 Export to CSV**: Professional-grade functionality allowing users to export their entire token portfolio for accounting or tracking.
-- **💎 Glassmorphism UI**: A high-end, dark-mode-first design featuring background blurs, interactive gradients, and smooth `framer-motion` animations.
-- **🖼️ Smart NFT Gallery**: Clickable NFT cards that link directly to OpenSea, featuring floor price detection and spam-verification help.
+##  Key Features
+- ** Unified Sync**: Fetches both ERC-20 balances and NFT metadata in parallel using `Promise.allSettled`.
+- ** ENS Resolution**: Full support for `.eth` names (e.g., `vitalik.eth`) with real-time resolution for a seamless UX.
+- ** Export to CSV**: Professional-grade functionality allowing users to export their entire token portfolio for accounting or tracking.
+- ** Glassmorphism UI**: A high-end, dark-mode-first design featuring background blurs, interactive gradients, and smooth `framer-motion` animations.
+- ** Smart NFT Gallery**: Clickable NFT cards that link directly to OpenSea, featuring floor price detection and spam-verification help.
 
-## 🛠️ Tech Stack
+##  Tech Stack
 - **Frontend**: React (Vite)
 - **Styling**: Chakra UI + Glassmorphism
 - **Web3 Interface**: Alchemy SDK
@@ -28,7 +28,7 @@
 - **Animations**: Framer Motion
 - **Deployment**: Vercel
 
-## ⚙️ Installation & Setup
+## Installation & Setup
 
 1. **Clone the repository**
    ```bash
